@@ -154,26 +154,29 @@
       document.getElementById('score').textContent = user.score;
     }
 
-    function buyUpgrade(type) {
-      const username = localStorage.getItem('loggedInUser');
-      const users = JSON.parse(localStorage.getItem('users'));
-      const user = users[username];
-      if (type === 'auto' && user.score >= 50) {
-        user.score -= 50;
-        user.upgrades.auto += 1;
-      } else if (type === 'double' && user.score >= 100) {
-        user.score -= 100;
-        user.upgrades.double += 1;
-      } else {
-        alert("Not enough score to purchase.");
-        return;
-      }
-      users[username] = user;
-      localStorage.setItem('users', JSON.stringify(users));
-      document.getElementById('score').textContent = user.score;
-      document.getElementById('auto-count').textContent = user.upgrades.auto;
-      document.getElementById('double-count').textContent = user.upgrades.double;
-    }
+  function buyUpgrade(type) {
+  const username = localStorage.getItem('loggedInUser');
+  const users = JSON.parse(localStorage.getItem('users'));
+  const user = users[username];
+
+  if (type === 'auto' && user.score >= 50) {
+    user.score -= 50;
+    user.upgrades.auto += 1;
+    startAutoClicker(); // <-- Restart auto-clicker with new level
+  } else if (type === 'double' && user.score >= 100) {
+    user.score -= 100;
+    user.upgrades.double += 1;
+  } else {
+    alert("Not enough score to purchase.");
+    return;
+  }
+
+  users[username] = user;
+  localStorage.setItem('users', JSON.stringify(users));
+  document.getElementById('score').textContent = user.score;
+  document.getElementById('auto-count').textContent = user.upgrades.auto;
+  document.getElementById('double-count').textContent = user.upgrades.double;
+}
 
     let autoInterval;
     function startAutoClicker() {
