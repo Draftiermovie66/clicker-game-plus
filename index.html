@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clicker Game with Login</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 2rem;
+      background: #f0f0f0;
+    }
+    .hidden { display: none; }
+    .box {
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      max-width: 300px;
+      margin: 2rem auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    button {
+      padding: 0.5rem 1rem;
+      margin-top: 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    input {
+      width: 100%;
+      padding: 0.5rem;
+      margin: 0.5rem 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="auth-box" class="box">
+    <h2 id="auth-title">Login</h2>
+    <input type="text" id="username" placeholder="Username" />
+    <input type="password" id="password" placeholder="Password" />
+    <button onclick="handleAuth()">Submit</button>
+    <p>
+      <span id="toggle-auth">Don't have an account? <a href="#" onclick="toggleMode()">Sign Up</a></span>
+    </p>
+  </div>
+
+  <div id="game-box" class="box hidden">
+    <h2>Welcome, <span id="userDisplay"></span>!</h2>
+    <p>Score: <span id="score">0</span></p>
+    <button onclick="addScore()">Click Me!</button>
+    <br /><br />
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <script>
+    let mode = 'login';
+
+    function toggleMode() {
+      mode = mode === 'login' ? 'signup' : 'login';
+      document.getElementById('auth-title').textContent = mode === 'login' ? 'Login' : 'Sign Up';
+      document.getElementById('toggle-auth').innerHTML = mode === 'login' 
+        ? `Don't have an account? <a href="#" onclick="toggleMode()">Sign Up</a>` 
+        : `Already have an account? <a href="#" onclick="toggleMode()">Login</a>`;
+    }
+
+    function handleAuth() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      if (!username || !password) return alert("Please fill in all fields.");
+
+      const users = JSON.parse(localStorage.getItem('users') || '{}');
+
+      if (mode === 'signup') {
+        if (users[username]) return alert('User already exists.');
+        users[username] = { password, score: 0 };
+        localStorage.setItem('users', JSON.stringify(users));
+        alert('Account created! You can now log in.');
+        toggleMode();
+      } else {
+        if (!users[username] || users[username].password !== password) {
+          return alert('Invalid credentials.');
+        }
+        localStorage.setItem('loggedInUser', username);
+        loadGame(username);
+      }
+    }
+
+    function loadGame(username) {
+      document.getElementById('auth-box').classList.add('hidden');
+      document.getElementById('game-box').classList.remove('hidden');
+      document.getElementById('userDisplay').textContent = username;
+      const users = JSON.parse(localStorage.getItem('users'));
+      document.getElementById('score').textContent = users[username].score;
+    }
+
+    function addScore() {
+      const username = localStorage.getItem('loggedInUser');
+      const users = JSON.parse(localStorage.getItem('users'));
+      users[username].score += 1;
+      localStorage.setItem('users', JSON.stringify(users));
+      document.getElementById('score').textContent = users[username].score;
+    }
+
+    function logout() {
+      localStorage.removeItem('loggedInUser');
+      document.getElementById('game-box').classList.add('hidden');
+      document.getElementById('auth-box').classList.remove('hidden');
+    }
+
+    // Auto-login if session exists
+    const currentUser = localStorage.getItem('loggedInUser');
+    if (currentUser) {
+      loadGame(currentUser);
+    }
+  </script>
+</body>
+</html>
