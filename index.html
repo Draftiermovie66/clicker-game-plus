@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Ultimate Clicker Game</title>
   <style>
     body {
@@ -61,6 +61,9 @@
       margin: 0.5rem 0;
       padding: 0.75rem;
       border-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
   </style>
 </head>
@@ -79,16 +82,25 @@
     <h2>Welcome, <span id="userDisplay"></span>!</h2>
     <p>Score: <span id="score">0</span></p>
     <button id="click-btn" onclick="addScore()">Click Me!</button>
+    
     <div id="shop">
       <h3>🛒 Shop</h3>
-      <div class="shop-item"><strong>Auto Clicker</strong> (Cost: 50) <button onclick="buyUpgrade('auto')">Buy</button></div>
-      <div class="shop-item"><strong>Double Click</strong> (Cost: 100) <button onclick="buyUpgrade('double')">Buy</button></div>
+      <div class="shop-item">
+        <strong>Auto Clicker</strong> (Cost: 50)
+        <button onclick="buyUpgrade('auto')">Buy</button>
+      </div>
+      <div class="shop-item">
+        <strong>Double Click</strong> (Cost: 100)
+        <button onclick="buyUpgrade('double')">Buy</button>
+      </div>
     </div>
+
     <div id="upgrades">
       <h3>⚙️ Upgrades</h3>
       <div class="upgrade-item">Auto Clicker: <span id="auto-count">0</span></div>
       <div class="upgrade-item">Double Click: <span id="double-count">0</span></div>
     </div>
+
     <br />
     <button onclick="logout()">Logout</button>
   </div>
@@ -97,6 +109,7 @@
 
   <script>
     let mode = 'login';
+    let autoInterval;
 
     function toggleMode() {
       mode = mode === 'login' ? 'signup' : 'login';
@@ -107,21 +120,28 @@
     }
 
     function handleAuth() {
-      const username = document.getElementById('username').value;
+      const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value;
-      if (!username || !password) return alert("Please fill in all fields.");
+      if (!username || !password) {
+        alert("Please fill in all fields.");
+        return;
+      }
 
       const users = JSON.parse(localStorage.getItem('users') || '{}');
 
       if (mode === 'signup') {
-        if (users[username]) return alert('User already exists.');
+        if (users[username]) {
+          alert('User already exists.');
+          return;
+        }
         users[username] = { password, score: 0, upgrades: { auto: 0, double: 0 } };
         localStorage.setItem('users', JSON.stringify(users));
         alert('Account created! You can now log in.');
         toggleMode();
       } else {
         if (!users[username] || users[username].password !== password) {
-          return alert('Invalid credentials.');
+          alert('Invalid credentials.');
+          return;
         }
         localStorage.setItem('loggedInUser', username);
         loadGame(username);
@@ -132,11 +152,14 @@
       document.getElementById('auth-box').classList.add('hidden');
       document.getElementById('game-box').classList.remove('hidden');
       document.getElementById('userDisplay').textContent = username;
+
       const users = JSON.parse(localStorage.getItem('users'));
       const user = users[username];
+
       document.getElementById('score').textContent = user.score;
       document.getElementById('auto-count').textContent = user.upgrades.auto;
       document.getElementById('double-count').textContent = user.upgrades.double;
+
       startAutoClicker();
     }
 
@@ -144,50 +167,61 @@
       const audio = document.getElementById('click-sound');
       audio.currentTime = 0;
       audio.play();
+
       const username = localStorage.getItem('loggedInUser');
       const users = JSON.parse(localStorage.getItem('users'));
       const user = users[username];
+
       const multiplier = 1 + user.upgrades.double;
       user.score += multiplier;
+
       users[username] = user;
       localStorage.setItem('users', JSON.stringify(users));
       document.getElementById('score').textContent = user.score;
     }
 
-  function buyUpgrade(type) {
-  const username = localStorage.getItem('loggedInUser');
-  const users = JSON.parse(localStorage.getItem('users'));
-  const user = users[username];
+    function buyUpgrade(type) {
+      const username = localStorage.getItem('loggedInUser');
+      const users = JSON.parse(localStorage.getItem('users'));
+      const user = users[username];
 
-  if (type === 'auto' && user.score >= 50) {
-    user.score -= 50;
-    user.upgrades.auto += 1;
-    startAutoClicker(); // <-- Restart auto-clicker with new level
-  } else if (type === 'double' && user.score >= 100) {
-    user.score -= 100;
-    user.upgrades.double += 1;
-  } else {
-    alert("Not enough score to purchase.");
-    return;
-  }
+      if (type === 'auto' && user.score >= 50) {
+        user.score -= 50;
+        user.upgrades.auto += 1;
+        startAutoClicker();  // Restart auto clicker with new level
+      } else if (type === 'double' && user.score >= 100) {
+        user.score -= 100;
+        user.upgrades.double += 1;
+      } else {
+        alert("Not enough score to purchase.");
+        return;
+      }
 
-  users[username] = user;
-  localStorage.setItem('users', JSON.stringify(users));
-  document.getElementById('score').textContent = user.score;
-  document.getElementById('auto-count').textContent = user.upgrades.auto;
-  document.getElementById('double-count').textContent = user.upgrades.double;
-}
+      users[username] = user;
+      localStorage.setItem('users', JSON.stringify(users));
 
-    let autoInterval;
+      document.getElementById('score').textContent = user.score;
+      document.getElementById('auto-count').textContent = user.upgrades.auto;
+      document.getElementById('double-count').textContent = user.upgrades.double;
+    }
+
     function startAutoClicker() {
       clearInterval(autoInterval);
       autoInterval = setInterval(() => {
         const username = localStorage.getItem('loggedInUser');
+        if (!username) {
+          clearInterval(autoInterval);
+          return;
+        }
         const users = JSON.parse(localStorage.getItem('users'));
         const user = users[username];
-        user.score += user.upgrades.auto;
-        localStorage.setItem('users', JSON.stringify(users));
-        document.getElementById('score').textContent = user.score;
+
+        if (user.upgrades.auto > 0) {
+          user.score += user.upgrades.auto;
+          users[username] = user;
+          localStorage.setItem('users', JSON.stringify(users));
+          document.getElementById('score').textContent = user.score;
+        }
       }, 1000);
     }
 
@@ -198,6 +232,7 @@
       document.getElementById('auth-box').classList.remove('hidden');
     }
 
+    // Auto-login if session exists
     const currentUser = localStorage.getItem('loggedInUser');
     if (currentUser) {
       loadGame(currentUser);
