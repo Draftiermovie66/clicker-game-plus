@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Clicker Game with Login</title>
+  <title>Ultimate Clicker Game</title>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       text-align: center;
       padding: 2rem;
-      background: linear-gradient(to bottom right, #667eea, #764ba2);
+      background: linear-gradient(to bottom right, #0f2027, #203a43, #2c5364);
       color: #fff;
     }
     .hidden { display: none; }
@@ -17,24 +17,24 @@
       background: rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(10px);
       padding: 2rem;
-      border-radius: 12px;
-      max-width: 350px;
+      border-radius: 20px;
+      max-width: 400px;
       margin: 2rem auto;
-      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
     }
     button {
       padding: 0.75rem 1.5rem;
-      margin-top: 1rem;
-      font-size: 1rem;
+      margin: 0.5rem;
+      font-size: 1.1rem;
       border: none;
       border-radius: 8px;
-      background-color: #ffb347;
-      color: #333;
+      background-color: #00e676;
+      color: #000;
       cursor: pointer;
       transition: background 0.3s;
     }
     button:hover {
-      background-color: #ffc76b;
+      background-color: #69f0ae;
     }
     input {
       width: 100%;
@@ -52,11 +52,15 @@
       50% { transform: scale(1.1); }
       100% { transform: scale(1); }
     }
-    #leaderboard {
-      margin-top: 2rem;
-      background: rgba(255, 255, 255, 0.1);
-      padding: 1rem;
-      border-radius: 8px;
+    #shop, #upgrades {
+      margin-top: 1.5rem;
+      text-align: left;
+    }
+    .shop-item, .upgrade-item {
+      background: rgba(0, 0, 0, 0.2);
+      margin: 0.5rem 0;
+      padding: 0.75rem;
+      border-radius: 10px;
     }
   </style>
 </head>
@@ -75,13 +79,18 @@
     <h2>Welcome, <span id="userDisplay"></span>!</h2>
     <p>Score: <span id="score">0</span></p>
     <button id="click-btn" onclick="addScore()">Click Me!</button>
-    <br /><br />
-    <button onclick="logout()">Logout</button>
-
-    <div id="leaderboard">
-      <h3>🏆 Leaderboard</h3>
-      <ol id="leaderboard-list"></ol>
+    <div id="shop">
+      <h3>🛒 Shop</h3>
+      <div class="shop-item"><strong>Auto Clicker</strong> (Cost: 50) <button onclick="buyUpgrade('auto')">Buy</button></div>
+      <div class="shop-item"><strong>Double Click</strong> (Cost: 100) <button onclick="buyUpgrade('double')">Buy</button></div>
     </div>
+    <div id="upgrades">
+      <h3>⚙️ Upgrades</h3>
+      <div class="upgrade-item">Auto Clicker: <span id="auto-count">0</span></div>
+      <div class="upgrade-item">Double Click: <span id="double-count">0</span></div>
+    </div>
+    <br />
+    <button onclick="logout()">Logout</button>
   </div>
 
   <audio id="click-sound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_b8814d61fb.mp3?filename=click-124467.mp3"></audio>
@@ -100,14 +109,13 @@
     function handleAuth() {
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
-
       if (!username || !password) return alert("Please fill in all fields.");
 
       const users = JSON.parse(localStorage.getItem('users') || '{}');
 
       if (mode === 'signup') {
         if (users[username]) return alert('User already exists.');
-        users[username] = { password, score: 0 };
+        users[username] = { password, score: 0, upgrades: { auto: 0, double: 0 } };
         localStorage.setItem('users', JSON.stringify(users));
         alert('Account created! You can now log in.');
         toggleMode();
@@ -125,42 +133,68 @@
       document.getElementById('game-box').classList.remove('hidden');
       document.getElementById('userDisplay').textContent = username;
       const users = JSON.parse(localStorage.getItem('users'));
-      document.getElementById('score').textContent = users[username].score || 0;
-      updateLeaderboard();
+      const user = users[username];
+      document.getElementById('score').textContent = user.score;
+      document.getElementById('auto-count').textContent = user.upgrades.auto;
+      document.getElementById('double-count').textContent = user.upgrades.double;
+      startAutoClicker();
     }
 
     function addScore() {
       const audio = document.getElementById('click-sound');
       audio.currentTime = 0;
       audio.play();
-
       const username = localStorage.getItem('loggedInUser');
       const users = JSON.parse(localStorage.getItem('users'));
-      if (!users[username]) users[username] = { password: '', score: 0 };
-      users[username].score += 1;
+      const user = users[username];
+      const multiplier = 1 + user.upgrades.double;
+      user.score += multiplier;
+      users[username] = user;
       localStorage.setItem('users', JSON.stringify(users));
-      document.getElementById('score').textContent = users[username].score;
-      updateLeaderboard();
+      document.getElementById('score').textContent = user.score;
     }
 
-    function updateLeaderboard() {
-      const users = JSON.parse(localStorage.getItem('users')) || {};
-      const leaderboard = document.getElementById('leaderboard-list');
-      leaderboard.innerHTML = '';
-      Object.keys(users).forEach(name => {
-        const li = document.createElement('li');
-        li.textContent = `${name}: ${users[name].score || 0}`;
-        leaderboard.appendChild(li);
-      });
+    function buyUpgrade(type) {
+      const username = localStorage.getItem('loggedInUser');
+      const users = JSON.parse(localStorage.getItem('users'));
+      const user = users[username];
+      if (type === 'auto' && user.score >= 50) {
+        user.score -= 50;
+        user.upgrades.auto += 1;
+      } else if (type === 'double' && user.score >= 100) {
+        user.score -= 100;
+        user.upgrades.double += 1;
+      } else {
+        alert("Not enough score to purchase.");
+        return;
+      }
+      users[username] = user;
+      localStorage.setItem('users', JSON.stringify(users));
+      document.getElementById('score').textContent = user.score;
+      document.getElementById('auto-count').textContent = user.upgrades.auto;
+      document.getElementById('double-count').textContent = user.upgrades.double;
+    }
+
+    let autoInterval;
+    function startAutoClicker() {
+      clearInterval(autoInterval);
+      autoInterval = setInterval(() => {
+        const username = localStorage.getItem('loggedInUser');
+        const users = JSON.parse(localStorage.getItem('users'));
+        const user = users[username];
+        user.score += user.upgrades.auto;
+        localStorage.setItem('users', JSON.stringify(users));
+        document.getElementById('score').textContent = user.score;
+      }, 1000);
     }
 
     function logout() {
+      clearInterval(autoInterval);
       localStorage.removeItem('loggedInUser');
       document.getElementById('game-box').classList.add('hidden');
       document.getElementById('auth-box').classList.remove('hidden');
     }
 
-    // Auto-login if session exists
     const currentUser = localStorage.getItem('loggedInUser');
     if (currentUser) {
       loadGame(currentUser);
