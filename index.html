@@ -125,7 +125,7 @@
       document.getElementById('game-box').classList.remove('hidden');
       document.getElementById('userDisplay').textContent = username;
       const users = JSON.parse(localStorage.getItem('users'));
-      document.getElementById('score').textContent = users[username].score;
+      document.getElementById('score').textContent = users[username].score || 0;
       updateLeaderboard();
     }
 
@@ -136,6 +136,7 @@
 
       const username = localStorage.getItem('loggedInUser');
       const users = JSON.parse(localStorage.getItem('users'));
+      if (!users[username]) users[username] = { password: '', score: 0 };
       users[username].score += 1;
       localStorage.setItem('users', JSON.stringify(users));
       document.getElementById('score').textContent = users[username].score;
@@ -143,12 +144,13 @@
     }
 
     function updateLeaderboard() {
-      const users = JSON.parse(localStorage.getItem('users'));
-      const sortedUsers = Object.entries(users).sort((a, b) => b[1].score - a[1].score);
+      const users = JSON.parse(localStorage.getItem('users')) || {};
       const leaderboard = document.getElementById('leaderboard-list');
       leaderboard.innerHTML = '';
-      sortedUsers.slice(0, 5).forEach(([name, data]) => {
-        leaderboard.innerHTML += `<li>${name}: ${data.score}</li>`;
+      Object.keys(users).forEach(name => {
+        const li = document.createElement('li');
+        li.textContent = `${name}: ${users[name].score || 0}`;
+        leaderboard.appendChild(li);
       });
     }
 
